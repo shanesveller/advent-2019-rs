@@ -13,6 +13,12 @@ fn part_1(masses: &[Mass]) -> Fuel {
         .fold(Fuel(0), |acc, f| acc + f)
 }
 
+fn part_2(masses: &[Mass]) -> Fuel {
+    masses
+        .iter()
+        .fold(Fuel(0), |acc, m| acc + m.all_required_fuel())
+}
+
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
@@ -30,6 +36,10 @@ fn main() -> io::Result<()> {
     let part_1 = part_1(&masses);
 
     dbg!(part_1);
+
+    let part_2 = part_2(&masses);
+
+    dbg!(part_2);
 
     Ok(())
 }
