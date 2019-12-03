@@ -3,8 +3,6 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use std::collections::BTreeMap;
-
 use ::day_2::Opcode;
 
 /// ```rust
@@ -12,49 +10,43 @@ use ::day_2::Opcode;
 /// let expected = vec![2,0,0,0,99];
 /// assert_eq!(part_1(ns), expected);
 /// ````
-fn part_1(ns: Vec<usize>) -> usize {
-    let mut p_v: BTreeMap<usize, usize> = BTreeMap::new();
-
-    for (i, n) in ns.iter().enumerate() {
-        p_v.insert(i, *n);
-    }
-
+fn part_1(mut ns: Vec<usize>) -> usize {
     let mut offset = 0;
 
     while offset < ns.len() {
-        let op = p_v.get(&offset).unwrap();
+        let op = ns[offset];
 
-        match Opcode::from(*op) {
+        match Opcode::from(op) {
             Opcode::Add => {
                 let val = {
-                    let arg1_pos = p_v.get(&(offset + 1)).unwrap();
-                    let arg2_pos = p_v.get(&(offset + 2)).unwrap();
-                    let arg1 = p_v.get(&arg1_pos).unwrap();
-                    let arg2 = p_v.get(&arg2_pos).unwrap();
+                    let arg1_pos = ns[offset + 1];
+                    let arg2_pos = ns[offset + 2];
+                    let arg1 = ns[arg1_pos];
+                    let arg2 = ns[arg2_pos];
                     arg1 + arg2
                 };
-                let res = *p_v.get(&(offset + 3)).unwrap();
-                p_v.insert(res, val);
-                offset += 4;
+                let res = ns[offset + 3];
+                ns[res] = val;
             }
             Opcode::Multiply => {
                 let val = {
-                    let arg1_pos = p_v.get(&(offset + 1)).unwrap();
-                    let arg2_pos = p_v.get(&(offset + 2)).unwrap();
-                    let arg1 = p_v.get(&arg1_pos).unwrap();
-                    let arg2 = p_v.get(&arg2_pos).unwrap();
+                    let arg1_pos = ns[offset + 1];
+                    let arg2_pos = ns[offset + 2];
+                    let arg1 = ns[arg1_pos];
+                    let arg2 = ns[arg2_pos];
                     arg1 * arg2
                 };
-                let res = *p_v.get(&(offset + 3)).unwrap();
-                p_v.insert(res, val);
-                offset += 4;
+                let res = ns[offset + 3];
+                ns[res] = val;
             }
             Opcode::Halt => break,
             _ => (),
         }
+
+        offset += 4;
     }
 
-    p_v.values().copied().next().unwrap()
+    ns[0]
 }
 
 fn main() -> io::Result<()> {
