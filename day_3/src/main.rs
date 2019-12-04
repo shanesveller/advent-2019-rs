@@ -4,7 +4,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 enum Dir {
@@ -36,13 +36,12 @@ fn parse_path(s: &str) -> WirePath {
     (dir, raw_distance.parse().unwrap())
 }
 
-fn track_placements(paths: &[WirePath]) -> HashSet<Coord> {
-    let mut coords = HashSet::new();
-
+fn track_placements(paths: &[WirePath]) -> HashMap<Coord, usize> {
+    let mut coords: HashMap<Coord, usize> = HashMap::new();
     let mut current_pos: Coord = ORIGIN;
+    let mut step = 0;
 
     for (dir, distance) in paths {
-        coords.insert(current_pos);
         let range = 1..=*distance;
 
         let new_coords: Vec<_> = match dir {
@@ -55,7 +54,8 @@ fn track_placements(paths: &[WirePath]) -> HashSet<Coord> {
 
         for c in new_coords {
             current_pos = c;
-            coords.insert(c);
+            step += 1;
+            coords.entry(c).or_insert(step);
         }
     }
     coords
@@ -68,23 +68,46 @@ fn main() -> io::Result<()> {
     let filename = Path::new(&args[1]);
     let input = fs::read_to_string(filename)?;
 
-    let wire_paths: Vec<HashSet<_>> = input
+    let wire_paths: Vec<HashMap<Coord, usize>> = input
         .trim()
         .lines() // wires
         .map(|l| l.split(',').map(parse_path).collect()) // per-wire path list
         .map(|ps: Vec<WirePath>| track_placements(&ps[..]))
         .collect();
 
-    let collisions: HashSet<_> = wire_paths[0].intersection(&wire_paths[1]).collect();
+    let collisions: HashMap<Coord, usize> =
+        wire_paths
+            .iter()
+            .skip(1)
+            .fold(wire_paths.first().unwrap().clone(), |acc, p| {
+                acc.into_iter()
+                    .filter_map(|(c, l)| {
+                        if let Some(n) = p.get(&c) {
+                            Some((c, n + l))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            });
 
     let closest = collisions
         .iter()
-        .filter(|c| ***c != ORIGIN)
-        .min_by(|l, r| manhatten_distance(***l, ORIGIN).cmp(&manhatten_distance(***r, ORIGIN)))
+        .filter(|(c, _s)| **c != ORIGIN)
+        .min_by(|(c, _s), (c2, _s2)| {
+            manhatten_distance(**c, ORIGIN).cmp(&manhatten_distance(**c2, ORIGIN))
+        })
         .unwrap();
 
-    dbg!(**closest);
-    dbg!(manhatten_distance(ORIGIN, **closest));
+    dbg!(*closest.0);
+    dbg!(manhatten_distance(ORIGIN, *closest.0));
+
+    let shortest_intersection_steps = collisions
+        .iter()
+        .min_by(|(_c, s), (_c2, s2)| s.cmp(s2))
+        .unwrap();
+
+    dbg!(shortest_intersection_steps);
 
     Ok(())
 }
